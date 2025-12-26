@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Копилка</title>
+    <link rel="stylesheet" href="/static/css/index.css/">
+    <link rel="icon" href="/static/img/money.png" type="image/png">
+</head>
+<body>
+{% block content %}
+<a href="/notes">Дневник программиста</a>
+<h1 class="site-title">Мой новый сайт</h1>
+<p class="red-text"><b>Моё</b> первое <i>Flask</i> приложение</p>
+<img src="../static/img/cat.jpg" alt="Котик за компьютером">
+<!--- <ul>
+    <li>Первый элемент</li>
+    <li>Второй элемент</li>
+</ul>
+<ol>
+    <li>Первый элемент</li>
+    <li>Второй элемент</li>
+</ol>
+<button>Кнопка!</button> --->
+<table border="1">
+    <caption><b>Дисциплины</b></caption>
+    <tr><th>Условный оператор</th><th>Операторы цикла</th><th>Типы данных (часть 1)</th><th>Типы данных (часть 2)</th><th>GIT. Введение</th><th>GIT. Ветвления</th><th>GitHub и GitLab</th><th>Итоговая аттестация</th><th>Введение в Linux</th><th>Виртуализация</th><th>Ubuntu</th><th>Дистрибутивы</th><th>База данных</th></tr>
+    <tr><th>100%</th><th>100%</th><th>100%</th><th>100%</th><th>100%</th><th>100%</th><th>100%</th><th>100%</th><th>100%</th><th>100%</th><th>-</th><th>-</th><th>100%</th></tr>
+    <tr><th>100%</th><th>100%</th><th>100%</th><th>100%</th><th>100%</th><th>100%</th><th>100%</th><th>100%</th><th>-</th><th>100%</th><th>-</th><th>-</th><th>100%</th></tr>
+    <tr><th>If, else, elif</th><th>For, while</th><th>Кортежи, списки</th><th>Строки, множества, словари</th><th>Введение</th><th>Логи, теги</th><th>SSH-агент</th><th>Программма "Копилка"</th><th>Основы открытого ПО</th><th>Создание виртуальной машины, установка ОС</th><th>Версии Ubuntu</th><th>Файловая система Linux</th><th>SQL Alchemy</th></tr>
+</table>
+<!---<form action="/submit" method="post">
+    <label for="name">Имя</label>
+    <input type="text" id="name" name="name"><br>
+    <button type="submit">Отправить</button>
+</form> --->
+{% endblock %}
+</body>
+</html>

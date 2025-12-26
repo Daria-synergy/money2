@@ -1,0 +1,65 @@
+{% extends 'index.html' %}
+{% block content %}
+<!-- Иконки навигации -->
+<div class="icon-container">
+    <a href="/money">
+        <img class="img1" src="../static/img/home.png" alt="Назад">
+    </a>
+    <a href="/logout">
+        <img class="img1" src="../static/img/exit.png" alt="Выход">
+    </a>
+</div>
+
+<!-- Главный заголовок -->
+<div class="page-header">
+    <h1 class="main-title">Цель накопления</h1>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+</div>
+
+<!-- Форма создания цели -->
+<div class="goal-form-container">
+    <form action="/update/{{c}}" method="post" class="goal-form">
+        <div class="form-group">
+            <label for="h" class="form-label">Название цели</label>
+            <input type="text" id="h" name="h" value="{{n.title}}" required>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="s" class="form-label">Итоговая сумма</label>
+                <input type="number" id="s" name="s" min="1" class="form-input num"
+                       value="{{n.sum_}}" required>
+            </div>
+            <div class="form-group">
+                <label for="bal" class="form-label">Начальный баланс</label>
+                <input type="number" id="bal" name="bal" min="0" class="form-input num"
+                       value="{{n.balance}}" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="cat" class="form-label">Категория цели</label>
+            <select name="cat" id="cat" class="form-select" required>
+                <option value="">Выберите категорию</option>
+                <option value="Хобби">Хобби</option>
+                <option value="Здоровье">Здоровье</option>
+                <option value="Работа">Работа</option>
+                <option value="Образование">Образование</option>
+                <option value="Прочее">Прочее</option>
+            </select>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-large">Изменить цель</button>
+        </div>
+    </form>
+</div>
+
+
+{% endblock %}
