@@ -35,7 +35,6 @@ class User(db.Model):
         self.token_expiration = datetime.utcnow() + timedelta(minutes=30)
         return self.token
 
-
 class Money(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.Column(db.String(64), nullable=False)
@@ -45,7 +44,14 @@ class Money(db.Model):
     balance = db.Column(db.Integer, nullable=False)
     cat = db.Column(db.String(64), nullable=False)
     status = db.Column(db.String(64), nullable=False)
-    change = db.Column(db.DateTime)
+    change = db.Column(db.Date)
+
+class Transactions(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    card = db.Column(db.Integer, nullable=False)
+    operation = db.Column(db.String(1), nullable=False)
+    sum_ = db.Column(db.Integer, nullable=False)
+    change = db.Column(db.Date)
 
 @app.route('/', methods=["GET", "POST"])
 def home():
@@ -153,6 +159,7 @@ def money():
             session["t"] = t
             session["s"] = s
             session["bal"] = bal
+            session["cat"] = cat
             if not t or not cat:
                 flash("Вы заполнили не все поля")
                 return render_template("create.html")
@@ -170,7 +177,10 @@ def money():
                     capital = Money(title=t, sum_=s, balance=bal, cat = cat, status="не достигнута", change=date.today(), user=session["user"])
                     flash('Цель успешно добавлена')
                     db.session.add(capital)
+                    transaction = Transactions(card=Money.query.all()[-1].id, operation='+', sum_=bal, change=date.today())
+                    db.session.add(transaction)
                     db.session.commit()
+
         except ValueError:
             flash("Вы можете ввести только целое числовое значение.")
             return render_template("create.html")
@@ -179,6 +189,7 @@ def money():
     session["t"] = ''
     session["s"] = ''
     session["bal"] = ''
+    session["cat"] = ''
     return render_template("money.html", n=n, n1=n1)
 
 @app.route("/create", methods=["post", "get"])
@@ -189,8 +200,9 @@ def create():
 def card(c):
     try:
         n = Money.query.get(c)
+        tr = Transactions.query.filter_by(card=n.id)
         if Money.query.get(c).user == session["user"] or session["user"] in Money.query.get(c).users:
-            return render_template("card.html", n=n)
+            return render_template("card.html", n=n, tr=tr)
         else:
             return render_template("404.html")
     except AttributeError:
@@ -202,6 +214,7 @@ def del_card(c):
         if Money.query.get(c).user == session["user"]:
             n = Money.query.get(c)
             db.session.delete(n)
+            db.session.query(Transactions).filter(Transactions.card==n.id).delete()
             db.session.commit()
             flash("Цель успешно удалена")
             return redirect(url_for('money'))
@@ -297,9 +310,21 @@ def upd_card(c):
                             n = Money.query.get(c)
                             n.title = t
                             n.sum_ = s
-                            n.balance = bal
+                            tr = Transactions.query.filter_by(card=c)
+                            n.balance = 0
+                            for i in tr:
+                                if i.operation == '+':
+                                    n.balance += i.sum_
+                                else:
+                                    n.balance -= i.sum_
+                                    if n.balance < 0:
+                                        n.balance = 0
+                            if n.balance > n.sum_:
+                                n.balance = n.sum_
+                                n.status = 'достигнута'
+                            else:
+                                n.status = 'не достигнута'
                             n.cat = cat
-                            n.status = 'не достигнута'
                             n.change = date.today()
                             db.session.commit()
                             flash("Цель успешно изменена")
@@ -320,11 +345,14 @@ def plus_bal(c):
     try:
         if request.method == 'POST':
             n = Money.query.get(c)
-            n.balance += int(request.form["b"])
+            b = int(request.form["b"])
+            n.balance += b
             if n.balance >= n.sum_:
                 n.balance = n.sum_
                 n.status = 'достигнута'
             n.change = date.today()
+            tr = Transactions(card=n.id, operation='+', sum_= b, change = date.today())
+            db.session.add(tr)
             db.session.commit()
             s = "/card/" + str(c)
             return redirect(s)
@@ -338,10 +366,13 @@ def min_bal(c):
     try:
         if request.method == 'POST':
             n = Money.query.get(c)
-            n.balance -= int(request.form["b"])
+            b = int(request.form["b"])
+            n.balance -= b
             if n.balance < 0:
                 n.balance = 0
             n.change = date.today()
+            tr = Transactions(card=n.id, operation='-', sum_=b, change=date.today())
+            db.session.add(tr)
             db.session.commit()
             s = "/card/" + str(c)
             return redirect(s)
