@@ -7,7 +7,41 @@
     <link rel="stylesheet" href="/static/css/index.css/">
     <link rel="icon" href="/static/img/money.png" type="image/png">
 </head>
-<body>
+<body id="theme-body" class="light-theme">
+<!-- В index.html перед </body> -->
+<script>
+    if ( window.history.replaceState ) {
+        window.history.replaceState( null, null, window.location.href );
+    }
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const body = document.getElementById('theme-body');
+    if (!body) return;
+
+    // Применяем сохраненную тему
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    body.classList.remove('light-theme', 'dark-theme');
+    body.classList.add(currentTheme + '-theme');
+
+    // Обработчик для всех кнопок theme-toggle
+    document.querySelectorAll('.theme-toggle').forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            if (body.classList.contains('light-theme')) {
+                body.classList.remove('light-theme');
+                body.classList.add('dark-theme');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.classList.remove('dark-theme');
+                body.classList.add('light-theme');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+    });
+});
+</script>
 {% block content %}
 <a href="/notes">Дневник программиста</a>
 <h1 class="site-title">Мой новый сайт</h1>

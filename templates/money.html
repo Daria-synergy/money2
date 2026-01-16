@@ -3,10 +3,13 @@
 <!-- Иконки остаются на прежнем месте -->
 <div class="icon-container">
     <a href="/create">
-        <img class="img1" src="../static/img/plus.png" alt="Создать">
+        <img class="img1" src="/static/img/plus.png" alt="Создать">
     </a>
     <a href="/logout">
-        <img class="img1" src="../static/img/exit.png" alt="Выход">
+        <img class="img1" src="/static/img/exit.png" alt="Выход">
+    </a>
+    <a href="#" class="theme-toggle">
+        <img class="img1" src="/static/img/set.png" alt="Сменить тему">
     </a>
 </div>
 
@@ -43,7 +46,17 @@
     <div class="savings-grid">
         {% for comment in n %}
             <a href="/card/{{ comment.id }}" class="savings-card personal-card">
-                <div class="card-icon personal-icon">👤</div>
+                {% if comment.cat == "Хобби" %}
+                <div class="card-icon personal-icon">🧩</div>
+                {% elif comment.cat == "Здоровье" %}
+                <div class="card-icon personal-icon">💉</div>
+                {% elif comment.cat == "Работа" %}
+                <div class="card-icon personal-icon">💼</div>
+                {% elif comment.cat == "Образование" %}
+                <div class="card-icon personal-icon">🎓</div>
+                {% elif comment.cat == "Прочее" %}
+                <div class="card-icon personal-icon">🎁</div>
+                {% endif %}
                 <div class="card-header">
                     <div class="card-title">{{ comment.title }}</div>
                     <div class="card-category">{{ comment.cat }}</div>
@@ -76,7 +89,17 @@
             {% if comment.users != None %}
                 {% if session.user in comment.users %}
                     <a href="/card/{{ comment.id }}" class="savings-card joint-card">
-                        <div class="card-icon joint-icon">👥</div>
+                        {% if comment.cat == "Хобби" %}
+                        <div class="card-icon joint-icon">🧩</div>
+                        {% elif comment.cat == "Здоровье" %}
+                        <div class="card-icon joint-icon">💉</div>
+                        {% elif comment.cat == "Работа" %}
+                        <div class="card-icon joint-icon">💼</div>
+                        {% elif comment.cat == "Образование" %}
+                        <div class="card-icon joint-icon">🎓</div>
+                        {% elif comment.cat == "Прочее" %}
+                        <div class="card-icon joint-icon">🎁</div>
+                        {% endif %}
                         <div class="card-header">
                             <div class="card-title">{{ comment.title }}</div>
                             <div class="card-category">{{ comment.cat }}</div>

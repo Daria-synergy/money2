@@ -8,13 +8,21 @@
     <a href="/logout">
         <img class="img1" src="../static/img/exit.png" alt="Выход">
     </a>
+    <a href="#" class="theme-toggle">
+        <img class="img1" src="/static/img/set.png" alt="Сменить тему">
+    </a>
 </div>
 
 <div class="goal-header">
-    <div class="goal-title">
-        <h1>{{ n.title }}</h1>
-        <div class="goal-status {{ 'completed' if n.status == 'достигнута' else 'in-progress' }}">
-            Цель {{ n.status }}
+    <div class="goal-image">
+        <img src="/static/img/goal.png" alt="Цель" class="goal-img">
+    </div>
+    <div class="goal-content">
+        <div class="goal-title">
+            <h1>{{ n.title }}</h1>
+            <div class="goal-status {{ 'completed' if n.status == 'достигнута' else 'in-progress' }}">
+                Цель {{ n.status }}
+            </div>
         </div>
     </div>
 </div>
@@ -28,17 +36,21 @@
 {% endwith %}
 
 <div class="goal-stats">
-    <div class="stat-card">
-        <div class="stat-label">Итоговая сумма</div>
-        <div class="stat-value">{{ n.sum_ }} ₽</div>
+    <div class="stat-tile sum-tile">
+        <span class="stat-label">Итоговая сумма</span>
+        <span class="stat-value">{{ n.sum_ }} ₽</span>
     </div>
-    <div class="stat-card">
-        <div class="stat-label">Текущий баланс</div>
-        <div class="stat-value balance">{{ n.balance }} ₽</div>
+    <div class="stat-tile sum-tile">
+        <span class="stat-label">Текущий баланс</span>
+        <span class="stat-value balance">{{ n.balance }} ₽</span>
     </div>
-    <div class="stat-card">
-        <div class="stat-label">Категория</div>
-        <div class="stat-value category">{{ n.cat }}</div>
+    <div class="stat-tile sum-tile">
+        <span class="stat-label">Категория</span>
+        <span class="stat-value category">{{ n.cat }}</span>
+    </div>
+    <div class="stat-tile sum-tile">
+        <span class="stat-label">Последнее изменение</span>
+        <span class="stat-value category">{{ n.change }}</span>
     </div>
 </div>
 
@@ -62,12 +74,6 @@
         </div>
     </form>
 </div>
-
-{% if n.user != session["user"] %}
-<div class="action-buttons">
-    <a href="/del_user/{{ n.id }}/{{ session['user'] }}" class="btn btn-danger" onclick="return confirm('Вы точно хотите выйти из накопления?')">Выйти</a>
-</div>
-{% endif %}
 
 {% if n.user == session["user"] %}
 <div class="collaborators-section">
@@ -107,5 +113,162 @@
     {% endif %}
 </div>
 {% endif %}
+{% endif %}
+
+<!-- ИСТОРИЯ + ГРАФИК - РАБОЧАЯ ВЕРСИЯ -->
+<div class="history-chart-container">
+    <div class="history-chart-wrapper">
+        <!-- Левая часть - История -->
+        <div class="history-section">
+            <h3 class="chart-title">📊 История изменений</h3>
+            {% if tr %}
+            <div class="history-list" id="historyList">
+                {% for i in tr %}
+                <div class="history-item {{ 'increase' if i.operation == '+' else 'decrease' }}"
+                     data-date="{{ i.change }}"
+                     data-amount="{{ i.sum_ }}"
+                     data-operation="{{ i.operation }}">
+                    <div class="history-info">
+                        <span class="history-icon">{{ i.operation }}</span>
+                        <span class="history-amount">{{ i.sum_ }} ₽</span>
+                        <span class="history-date">{{ i.change }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📊</div>
+                <p>История изменений пуста</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Правая часть - График -->
+        <div class="chart-section">
+            <h3 class="chart-title">📈 Прогресс накопления</h3>
+            <div class="chart-container">
+                <canvas id="balanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const historyList = document.getElementById('historyList');
+    if (!historyList || historyList.children.length === 0) {
+        console.log('Нет данных для графика');
+        return;
+    }
+
+    const historyItems = document.querySelectorAll('.history-item');
+    const goalSumElement = document.querySelector('.stat-value'); // Итоговая сумма
+    const goalSumText = goalSumElement ? goalSumElement.textContent.replace(' ₽', '').replace(/,/g, '') : 0;
+    const maxBalance = parseFloat(goalSumText) || 10000;
+
+    console.log('Найдено элементов истории: ' + historyItems.length);
+    console.log('Максимальный баланс цели: ' + maxBalance);
+
+    const labels = [];
+    const balanceData = [];
+    const colors = [];
+    let currentBalance = 0;
+
+    Array.from(historyItems).forEach(function(item) {
+        const date = item.dataset.date || 'Неизвестно';
+        const amount = parseFloat(item.dataset.amount) || 0;
+        const operation = item.dataset.operation;
+
+        // ОГРАНИЧЕНИЯ: 0 <= баланс <= итоговая сумма
+        currentBalance += (operation === '+' ? amount : -amount);
+        currentBalance = Math.max(0, Math.min(currentBalance, maxBalance));
+
+        labels.push(date);
+        balanceData.push(Math.round(currentBalance));
+        colors.push(operation === '+' ? '#57B446' : '#FF6B35');
+    });
+
+    console.log('Данные для графика: ', { labels: labels, balanceData: balanceData });
+
+    const canvas = document.getElementById('balanceChart');
+    if (!canvas) {
+        console.error('Canvas не найден!');
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    if (window.balanceChartInstance) {
+        window.balanceChartInstance.destroy();
+    }
+
+    window.balanceChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Баланс',
+                data: balanceData,
+                borderColor: '#57B446',
+                backgroundColor: 'rgba(87, 180, 70, 0.15)',
+                borderWidth: 4,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: colors,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 3,
+                pointRadius: 8,
+                pointHoverRadius: 12
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.9)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            return 'Баланс: ' + context.parsed.y.toLocaleString() + ' ₽';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: maxBalance,
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString() + ' ₽';
+                        }
+                    }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            },
+            animation: {
+                duration: 1500,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+
+    console.log('График создан успешно с ограничениями!');
+});
+</script>
+
+{% if n.user != session["user"] %}
+<div class="action-buttons">
+    <a href="/del_user/{{ n.id }}/{{ session['user'] }}" class="btn btn-danger" onclick="return confirm('Вы точно хотите выйти из накопления?')">Покинуть группу накопления</a>
+</div>
 {% endif %}
 {% endblock %}
