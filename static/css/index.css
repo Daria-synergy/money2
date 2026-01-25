@@ -3733,3 +3733,121 @@ body.dark-theme .goal-status.in-progress {
         font-size: 24px;
     }
 }
+
+/* ПРЕДСКАЗАНИЕ */
+.prediction-section {
+    margin: 40px 0;
+    padding: 0 20px;
+}
+
+.prediction-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--sber-green-dark);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.prediction-card {
+    background: var(--sber-white);
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.1);
+    border: 1px solid var(--sber-gray-border);
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.prediction-loading {
+    text-align: center;
+    color: var(--sber-gray-medium);
+    font-size: 16px;
+}
+
+.spinner {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(87, 180, 70, 0.2);
+    border-top: 3px solid var(--sber-green);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 12px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.prediction-date {
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--sber-green-dark);
+    text-align: center;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, var(--sber-green), var(--sber-green-dark));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.prediction-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.detail-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
+    color: var(--sber-gray-medium);
+}
+
+.detail-value {
+    font-weight: 700;
+    color: var(--sber-green-dark);
+}
+
+.confidence-bar {
+    margin-top: 20px;
+    height: 12px;
+    background: var(--sber-gray-light);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+}
+
+.confidence-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--sber-green), var(--sber-green-dark));
+    transition: width 1s ease;
+    border-radius: 6px;
+}
+
+.confidence-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--sber-gray-medium);
+    z-index: 1;
+}
+
+/* ТЁМНАЯ ТЕМА */
+body.dark-theme .prediction-card {
+    background: rgba(45, 58, 82, 0.9) !important;
+    border-color: #4A5A75 !important;
+}
+
+body.dark-theme .prediction-title {
+    color: var(--sber-white) !important;
+}
+
+body.dark-theme .detail-value,
+body.dark-theme .prediction-date {
+    color: var(--sber-white) !important;
+}
