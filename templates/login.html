@@ -5,12 +5,12 @@
 </a>
 <div class="form-container">
     {% with messages = get_flashed_messages() %}
-      {% if messages %}
+    {% if messages %}
         {% for message in messages %}
-         <div class="alert alert-success">{{ message }}</div>
+            <div class="alert">{{ message }}</div>
         {% endfor %}
-      {% endif %}
-    {% endwith %}
+    {% endif %}
+{% endwith %}
 <form action="/login" method="post">
     <label for="login">Логин</label>
     <input type="text" id="login" name="login" required><br>

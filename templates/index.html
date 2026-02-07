@@ -14,17 +14,24 @@
         window.history.replaceState( null, null, window.location.href );
     }
 </script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const body = document.getElementById('theme-body');
     if (!body) return;
 
-    // Применяем сохраненную тему
-    const currentTheme = localStorage.getItem('theme') || 'light';
-    body.classList.remove('light-theme', 'dark-theme');
-    body.classList.add(currentTheme + '-theme');
+    // Определяем тему ОС/браузера
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const savedTheme = localStorage.getItem('theme');
 
-    // Обработчик для всех кнопок theme-toggle
+    // По умолчанию - тема браузера (если не сохранено)
+    const defaultTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+
+    // Применяем тему
+    body.classList.remove('light-theme', 'dark-theme');
+    body.classList.add(defaultTheme + '-theme');
+
+    // Обработчик переключения - ПУНКТИРНАЯ ТЕМА
     document.querySelectorAll('.theme-toggle').forEach(function(button) {
         button.addEventListener('click', function(e) {
             e.preventDefault();
@@ -40,8 +47,31 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Отслеживаем изменение системной темы (если не сохранено)
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', function(e) {
+        const savedTheme = localStorage.getItem('theme');
+        if (!savedTheme) { // Только если пользователь не выбрал тему
+            body.classList.remove('light-theme', 'dark-theme');
+            body.classList.add(e.matches ? 'dark-theme' : 'light-theme');
+        }
+    });
 });
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Удаляем уведомления после анимации
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+            alert.remove();
+        });
+    }, 4500); // Немного больше времени анимации
+});
+</script>
+
 {% block content %}
 <a href="/notes">Дневник программиста</a>
 <h1 class="site-title">Мой новый сайт</h1>

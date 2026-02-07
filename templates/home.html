@@ -2,12 +2,12 @@
 {% block content %}
 <div class="container">
     {% with messages = get_flashed_messages() %}
-      {% if messages %}
+    {% if messages %}
         {% for message in messages %}
-         <div class="alert alert-success">{{ message }}</div>
+            <div class="alert">{{ message }}</div>
         {% endfor %}
-      {% endif %}
-    {% endwith %}
+    {% endif %}
+{% endwith %}
     <img class="img2" src="../static/img/home.png" alt="Домашняя страница">
     <div class="home">
         <a href="/register"><button>Зарегистрироваться</button></a>

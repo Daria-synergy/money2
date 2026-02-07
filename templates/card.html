@@ -30,7 +30,7 @@
 {% with messages = get_flashed_messages() %}
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-success">{{ message }}</div>
+            <div class="alert">{{ message }}</div>
         {% endfor %}
     {% endif %}
 {% endwith %}
@@ -150,6 +150,208 @@
             <div class="chart-container">
                 <canvas id="balanceChart"></canvas>
             </div>
+            {% if n.status == 'не достигнута' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 🔍 Поиск элементов
+    const goalSumElement = document.querySelector('.sum-tile:first-child .stat-value');
+    const historyItems = document.querySelectorAll('.history-item');
+
+    console.log('=== ГИБРИДНЫЙ ПРЕДСКАЗАТЕЛЬ v2 ===');
+    console.log('Цель элемент:', goalSumElement);
+    console.log('История:', historyItems.length);
+
+    if (!goalSumElement || historyItems.length === 0) {
+        showPredictionError('Нет данных');
+        return;
+    }
+
+    // 🎯 Надёжный парсинг цели (3 метода)
+    const rawGoalText = goalSumElement.textContent.trim();
+    console.log('Цель текст:', rawGoalText);
+
+    let goalSum = parseFloat(rawGoalText.replace(/[^0-9]/g, ''));
+    if (isNaN(goalSum)) {
+        const match = rawGoalText.match(/[ds]+/);
+        goalSum = match ? parseFloat(match[0].replace(/s/g, '')) : NaN;
+    }
+    if (isNaN(goalSum)) {
+        const numbers = rawGoalText.match(/d+/g);
+        goalSum = numbers ? parseFloat(numbers[0]) : 0;
+    }
+
+    console.log('Цель:', goalSum);
+    if (isNaN(goalSum) || goalSum <= 0) {
+        showPredictionError('Ошибка цели: "' + rawGoalText + '"');
+        return;
+    }
+
+    // 📊 История с датами
+    const history = [];
+    for (let item of historyItems) {
+        const amount = parseFloat(item.dataset.amount) || 0;
+        if (amount > 0) {
+            history.push({
+                date: item.dataset.date,
+                dateObj: new Date(item.dataset.date),
+                amount: amount,
+                operation: item.dataset.operation
+            });
+        }
+    }
+
+    console.log('Обработано операций:', history.length);
+    if (history.length < 3) {
+        showPredictionError('Нужно минимум 3 операции');
+        return;
+    }
+
+    // 💰 Текущий баланс
+    let currentBalance = 0;
+    for (let item of history) {
+        currentBalance += item.operation === '+' ? item.amount : -item.amount;
+    }
+
+    console.log('Баланс:', currentBalance);
+
+    if (currentBalance >= goalSum) {
+        showPredictionSuccess('🎉 Цель достигнута!');
+        return;
+    }
+    if (currentBalance <= 0) {
+        showPredictionError('Баланс: ' + Math.round(currentBalance) + ' ₽');
+        return;
+    }
+
+    // 🎯 ГИБРИДНЫЙ АЛГОРИТМ
+    const CUTOFF_DAYS = 30;
+    const cutoffDate = new Date(Date.now() - CUTOFF_DAYS * 24 * 60 * 60 * 1000);
+
+    // Операции за последние 30 дней
+    const recentHistory = history.filter(h => h.dateObj >= cutoffDate);
+    console.log('Операций за 30 дней:', recentHistory.length);
+
+    if (recentHistory.length === 0) {
+        showPredictionError('Нет свежих операций (30 дней)');
+        return;
+    }
+
+    // Расчёт дней (гибрид)
+    const firstDate = recentHistory[0].dateObj;
+    const lastDate = recentHistory[recentHistory.length - 1].dateObj;
+    const calendarDays = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24)) + 1;
+    const operationsCount = recentHistory.length;
+    const daysCount = Math.max(3, operationsCount, calendarDays);
+
+    console.log('Дней (операций):', operationsCount);
+    console.log('Дней (календарь):', calendarDays);
+    console.log('Используем дней:', daysCount);
+
+    // Чистый прирост
+    let netGain = 0;
+    for (let item of recentHistory) {
+        netGain += item.operation === '+' ? item.amount : -item.amount;
+    }
+
+    const dailyRate = Math.max(1, Math.round(netGain / daysCount));
+    console.log('Скорость:', dailyRate, '₽/день');
+
+    if (dailyRate <= 0) {
+        showPredictionError('Скорость: ' + dailyRate + ' ₽/день');
+        return;
+    }
+
+    // 📅 Предсказание
+    const remaining = goalSum - currentBalance;
+    const daysNeeded = Math.ceil(remaining / dailyRate);
+    const predictedDate = new Date(lastDate.getTime() + daysNeeded * 24 * 60 * 60 * 1000);
+
+    console.log('Остаток:', remaining);
+    console.log('Дней нужно:', daysNeeded);
+    console.log('Дата:', predictedDate);
+
+    if (predictedDate < new Date()) {
+        showPredictionWarning('Дата в прошлом');
+        return;
+    }
+    // Форматирование
+    const formatter = new Intl.DateTimeFormat('ru-RU', {
+        day: 'numeric', month: 'long', year: 'numeric'
+    });
+    const formattedDate = formatter.format(predictedDate);
+
+    // ✅ Показать
+    setTimeout(() => {
+        document.querySelector('.prediction-loading').style.display = 'none';
+        document.getElementById('predictionResult').style.display = 'block';
+        document.getElementById('predictedDate').textContent = formattedDate;
+        console.log('✅ Готово:', formattedDate);
+    }, 1200);
+
+    // 🛠️ Функции вывода
+    function showPredictionError(message) {
+        setTimeout(() => {
+            const card = document.getElementById('predictionCard');
+            if (card) {
+                if (message.includes('Баланс:')) {
+                    card.innerHTML = '<div style="text-align:center;padding:32px;color:#666">' +
+                        '<div style="font-size:48px;margin-bottom:16px">📊</div>' +
+                        '<div style="font-size:18px;margin-bottom:8px;font-weight:500">Скорость слишком маленькая</div>' +
+                        '<div style="font-size:14px;opacity:0.7">Добавьте больше пополнений</div>' +
+                        '</div>';
+                } else {
+                    card.innerHTML = '<div style="text-align:center;padding:32px;color:#666">' +
+                        '<div style="font-size:48px;margin-bottom:16px">📊</div>' +
+                        '<div style="font-size:18px;margin-bottom:8px;font-weight:500">' + message + '</div>' +
+                        '<div style="font-size:14px;opacity:0.7">Проверьте данные</div>' +
+                        '</div>';
+                }
+            }
+        }, 1000);
+    }
+
+    function showPredictionSuccess(message) {
+        setTimeout(() => {
+            const card = document.getElementById('predictionCard');
+            if (card) {
+                card.innerHTML = '<div style="text-align:center;padding:32px">' +
+                    '<div style="font-size:64px;margin-bottom:20px">🎉</div>' +
+                    '<div style="font-size:24px;font-weight:900;color:#166534;margin-bottom:12px">' + message + '</div>' +
+                    '<div style="font-size:16px;color:#666">Отлично!</div>' +
+                    '</div>';
+            }
+        }, 1000);
+    }
+
+    function showPredictionWarning(message) {
+        setTimeout(() => {
+            const card = document.getElementById('predictionCard');
+            if (card) {
+                card.innerHTML = '<div style="text-align:center;padding:32px;color:#d97706">' +
+                    '<div style="font-size:48px;margin-bottom:16px">⚠️</div>' +
+                    '<div style="font-size:18px;margin-bottom:8px;font-weight:500">' + message + '</div>' +
+                    '<div style="font-size:14px;opacity:0.7">Добавьте больше пополнений</div>' +
+                    '</div>';
+            }
+        }, 1000);
+    }
+});
+</script>
+<div class="prediction-section" style="margin-top: 60px;">
+    <div class="prediction-title-center">🎯 Когда достигнете цели?</div>
+    <div class="prediction-card" id="predictionCard">
+        <div class="prediction-loading">
+            <span class="spinner"></span>
+            <span>Анализируем историю...</span>
+        </div>
+        <div class="prediction-result" id="predictionResult" style="display: none;">
+            <!-- ✅ ТОЛЬКО ДАТА -->
+            <div class="prediction-date" id="predictedDate">-</div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
         </div>
     </div>
 </div>
@@ -265,247 +467,6 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('График создан успешно с ограничениями!');
 });
 </script>
-
-{% if n.status == 'не достигнута' %}
-<script>
-// ПРЕДСКАЗАНИЕ с проверками дат и данных
-document.addEventListener('DOMContentLoaded', function() {
-    const historyItems = document.querySelectorAll('.history-item');
-    const goalSumElement = document.querySelector('.stat-value');
-
-    if (historyItems.length === 0 || !goalSumElement) {
-        showPredictionError('Нет данных для анализа');
-        return;
-    }
-
-    // Парсим цель
-    const goalSumText = goalSumElement.textContent.replace(/[^d]/g, '');
-    const goalSum = parseFloat(goalSumText);
-    if (isNaN(goalSum) || goalSum <= 0) {
-        showPredictionError('Неизвестная сумма цели');
-        return;
-    }
-
-    // Собираем историю
-    const history = Array.from(historyItems).map(item => ({
-        date: item.dataset.date,
-        amount: parseFloat(item.dataset.amount) || 0,
-        operation: item.dataset.operation
-    })).filter(item => item.amount > 0); // Только реальные суммы
-
-    if (history.length < 3) {
-        showPredictionError('Недостаточно данных (минимум 3 операции)');
-        return;
-    }
-
-    // Текущий баланс
-    let currentBalance = 0;
-    history.forEach(item => {
-        if (item.operation === '+') currentBalance += item.amount;
-        else currentBalance -= item.amount;
-        currentBalance = Math.max(0, currentBalance);
-    });
-
-    if (currentBalance >= goalSum) {
-        showPredictionSuccess('🎉 Цель уже достигнута!');
-        return;
-    }
-
-    // Последние 5-10 операций
-    const recentCount = Math.min(10, history.length);
-    const recent = history.slice(-recentCount);
-    const recentAdds = recent.filter(item => item.operation === '+');
-
-    if (recentAdds.length === 0) {
-        showPredictionError('Нет пополнений за период');
-        return;
-    }
-
-
-
-    const netGain = recentAdds.reduce((sum, item) => sum + item.amount, 0);
-
-    const daysPeriod = recentCount;
-
-    const dailyRate = Math.round(netGain / daysPeriod);
-
-
-
-    if (dailyRate <= 0) {
-
-        showPredictionError('Скорость накопления слишком низкая');
-
-        return;
-
-    }
-
-
-
-    const remaining = goalSum - currentBalance;
-
-    const daysNeeded = Math.ceil(remaining / dailyRate);
-
-
-
-    // ❌ ПРОВЕРКА ПРОШЕДШЕЙ ДАТЫ
-
-    const lastDate = new Date(history[0].date);
-
-    const today = new Date();
-
-    const predictedDate = new Date(lastDate.getTime() + daysNeeded * 24 * 60 * 60 * 1000);
-
-
-
-    if (predictedDate < today) {
-
-        showPredictionWarning('Дата в прошлом - увеличьте скорость накоплений!');
-
-        return;
-
-    }
-
-
-
-    // Форматируем дату
-
-    const options = { day: 'numeric', month: 'short', year: 'numeric' };
-
-    const formattedDate = predictedDate.toLocaleDateString('ru-RU', options);
-
-
-
-    // Уверенность
-
-    const confidence = Math.min(90, Math.max(25, 100 - (daysNeeded / 8)));
-
-
-
-    // Показываем результат
-
-    setTimeout(() => {
-
-        document.querySelector('.prediction-loading').style.display = 'none';
-
-        document.getElementById('predictionResult').style.display = 'block';
-
-
-
-        document.getElementById('predictedDate').textContent = formattedDate;
-
-        document.getElementById('dailyRate').textContent = dailyRate.toLocaleString();
-
-        document.getElementById('daysNeeded').textContent = daysNeeded;
-
-        document.getElementById('confidenceFill').style.width = confidence + '%';
-
-        document.getElementById('confidenceText').textContent = confidence + '% уверенность';
-
-    }, 1200);
-
-
-
-    function showPredictionError(message) {
-
-        setTimeout(() => {
-
-            document.querySelector('.prediction-loading').style.display = 'none';
-
-            document.getElementById('predictionCard').innerHTML =
-
-                `<div style="text-align: center; padding: 40px; color: var(--sber-gray-medium);">
-
-                    <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
-
-                    <p style="font-size: 16px; margin-bottom: 8px;">${message}</p>
-
-                    <p style="font-size: 14px; opacity: 0.7;">Добавьте больше операций для точного прогноза</p>
-
-                </div>`;
-
-        }, 1000);
-
-    }
-
-
-
-    function showPredictionSuccess(message) {
-
-        setTimeout(() => {
-
-            document.querySelector('.prediction-loading').style.display = 'none';
-
-            document.getElementById('predictionCard').innerHTML =
-
-                `<div style="text-align: center; padding: 40px;">
-
-                    <div style="font-size: 64px; margin-bottom: 20px;">🎉</div>
-
-                    <div style="font-size: 28px; font-weight: 900; color: var(--sber-green-dark); margin-bottom: 12px;">${message}</div>
-
-                    <div style="font-size: 16px; color: var(--sber-gray-medium);">Поздравляем!</div>
-
-                </div>`;
-
-        }, 1000);
-
-    }
-
-
-
-    function showPredictionWarning(message) {
-
-        setTimeout(() => {
-
-            document.querySelector('.prediction-loading').style.display = 'none';
-
-            document.getElementById('predictionResult').style.display = 'block';
-
-            document.getElementById('predictedDate').textContent = '❌ В прошлом';
-
-            document.getElementById('dailyRate').textContent = dailyRate.toLocaleString();
-
-            document.getElementById('daysNeeded').textContent = 'Слишком мало';
-
-            document.getElementById('confidenceFill').style.width = '10%';
-
-            document.getElementById('confidenceText').textContent = message;
-
-        }, 1200);
-
-    }
-
-});
-
-</script>
-<!-- ПРЕДСКАЗАНИЕ ДАТЫ ЗАВЕРШЕНИЯ -->
-<div class="prediction-section">
-    <h3 class="prediction-title">🎯 Когда достигнете цели?</h3>
-    <div class="prediction-card" id="predictionCard">
-        <div class="prediction-loading">
-            <span class="spinner"></span>
-            <span>Анализируем историю...</span>
-        </div>
-        <div class="prediction-result" id="predictionResult" style="display: none;">
-            <div class="prediction-date" id="predictedDate">-</div>
-            <div class="prediction-details">
-                <span class="detail-line">
-                    <span class="detail-label">Средняя скорость:</span>
-                    <span class="detail-value" id="dailyRate">-</span> ₽/день
-                </div>
-                <span class="detail-line">
-                    <span class="detail-label">Осталось дней:</span>
-                    <span class="detail-value" id="daysNeeded">-</span>
-                </div>
-                <div class="confidence-bar">
-                    <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
-                    <span class="confidence-text" id="confidenceText">0% уверенность</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
 
 {% if n.user != session["user"] %}
 <div class="action-buttons">
